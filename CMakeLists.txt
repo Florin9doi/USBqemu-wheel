@@ -239,6 +239,14 @@ SET(HDRS_EYETOY
 	./src/usb-eyetoy/ov519.h
 )
 
+SET(SRCS_PSP
+	./src/usb-psp/usb-psp.cpp
+)
+
+SET(HDRS_PSP
+	./src/usb-psp/usb-psp.h
+)
+
 SET(HDRS_HID
 	./src/usb-hid/hidproxy.h
 	./src/usb-hid/usb-hid.h
@@ -523,6 +531,7 @@ SOURCE_GROUP("Header Files\\usb-pad" FILES ${HDRS_PAD})
 SOURCE_GROUP("Header Files\\usb-msd" FILES ${HDRS_MSD})
 SOURCE_GROUP("Header Files\\usb-hid" FILES ${HDRS_HID})
 SOURCE_GROUP("Header Files\\usb-eyetoy" FILES ${HDRS_EYETOY})
+SOURCE_GROUP("Header Files\\usb-psp" FILES ${HDRS_PSP})
 SOURCE_GROUP("Header Files\\shared" FILES ${HDRS_SHARED})
 SOURCE_GROUP("Header Files\\libsamplerate" FILES ${HDRS_SAMPLERATE})
 
@@ -535,6 +544,7 @@ SOURCE_GROUP("Source Files\\usb-pad" FILES ${SRCS_PAD})
 SOURCE_GROUP("Source Files\\usb-msd" FILES ${SRCS_MSD})
 SOURCE_GROUP("Source Files\\usb-hid" FILES ${SRCS_HID})
 SOURCE_GROUP("Source Files\\usb-eyetoy" FILES ${SRCS_EYETOY})
+SOURCE_GROUP("Source Files\\usb-psp" FILES ${SRCS_PSP})
 SOURCE_GROUP("Source Files\\shared" FILES ${SRCS_SHARED})
 SOURCE_GROUP("Source Files\\libsamplerate" FILES ${SRCS_SAMPLERATE})
 
@@ -544,8 +554,8 @@ FOREACH(file ${SRCS_API_INITS})
 		SOURCE_GROUP("Source Files\\${api_dir}" FILES "${file}")
 ENDFOREACH()
 
-LIST(APPEND HDRS ${HDRS_PLG} ${HDRS_QEMU} ${HDRS_MSD} ${HDRS_MIC} ${HDRS_PAD} ${HDRS_HID} ${HDRS_EYETOY} ${HDRS_SHARED} ${HDRS_SAMPLERATE})
-LIST(APPEND SRCS ${SRCS_PLG} ${SRCS_QEMU} ${SRCS_MSD} ${SRCS_MIC} ${SRCS_PAD} ${SRCS_HID} ${SRCS_EYETOY} ${SRCS_SHARED} ${SRCS_API_INITS})
+LIST(APPEND HDRS ${HDRS_PLG} ${HDRS_QEMU} ${HDRS_MSD} ${HDRS_MIC} ${HDRS_PAD} ${HDRS_HID} ${HDRS_EYETOY} ${HDRS_PSP} ${HDRS_SHARED} ${HDRS_SAMPLERATE})
+LIST(APPEND SRCS ${SRCS_PLG} ${SRCS_QEMU} ${SRCS_MSD} ${SRCS_MIC} ${SRCS_PAD} ${SRCS_HID} ${SRCS_EYETOY} ${SRCS_PSP} ${SRCS_SHARED} ${SRCS_API_INITS})
 
 IF(PLUGIN_ENABLE_UNITY_BUILD)
 enable_unity_build(${TargetName} SRCS)

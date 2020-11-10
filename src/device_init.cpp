@@ -1,6 +1,7 @@
 #include "deviceproxy.h"
 #include "usb-pad/usb-pad.h"
 #include "usb-msd/usb-msd.h"
+#include "usb-psp/usb-psp.h"
 #include "usb-mic/usb-mic-singstar.h"
 #include "usb-mic/usb-headset.h"
 #include "usb-hid/usb-hid.h"
@@ -13,6 +14,7 @@ void RegisterDevice::Register()
 		return;
 	inst.Add(DEVTYPE_PAD, new DeviceProxy<usb_pad::PadDevice>());
 	inst.Add(DEVTYPE_MSD, new DeviceProxy<usb_msd::MsdDevice>());
+	inst.Add(DEVTYPE_PSP, new DeviceProxy<usb_psp::PSPDevice>());
 	inst.Add(DEVTYPE_SINGSTAR, new DeviceProxy<usb_mic::SingstarDevice>());
 	inst.Add(DEVTYPE_LOGITECH_MIC, new DeviceProxy<usb_mic::LogitechMicDevice>());
 	inst.Add(DEVTYPE_LOGITECH_HEADSET, new DeviceProxy<usb_mic::HeadsetDevice>());
