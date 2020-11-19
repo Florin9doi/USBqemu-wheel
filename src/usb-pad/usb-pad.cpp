@@ -212,6 +212,10 @@ namespace usb_pad
 		switch (p->pid)
 		{
 			case USB_TOKEN_IN:
+				if (devep != 1)
+				{
+					fprintf(stderr, "Florin: dataIn: id=%x ep=%x : ", p->pid, p->ep->nr);
+				}
 				if (devep == 1 && s->pad)
 				{
 					ret = s->pad->TokenIn(data, p->iov.size);
@@ -245,6 +249,7 @@ namespace usb_pad
 				}
 				break;
 			case USB_TOKEN_OUT:
+				fprintf(stderr, "Florin: dataOut: id=%x ep=%x\n", p->pid, p->ep->nr);
 				usb_packet_copy(p, data, MIN(p->iov.size, sizeof(data)));
 				/*fprintf(stderr,"usb-pad: data token out len=0x%X %X,%X,%X,%X,%X,%X,%X,%X\n",len,
 			data[0],data[1],data[2],data[3],data[4],data[5],data[6],data[7]);*/
@@ -273,6 +278,18 @@ namespace usb_pad
 		int ret = 0;
 
 		int t = s->pad->Type();
+		fprintf(stderr, "Florin: usb_ctrl; req=%4x (%s), val=%4x, idx=%4x, len=%4x : [",
+				request,
+				(request ==      5) ? "setAddr" :
+				(request == 0x8006) ? "getDesc" :
+				(request ==      9) ? "setConf" :
+				(request == 0x2109) ? "setRepr" :
+				"",
+			value, index, length);
+		for (int i = 0; i < length; i++) {
+			fprintf(stderr, "%02x ", data[i]);
+		}
+		fprintf(stderr, "]\n");
 
 		switch (request)
 		{
@@ -331,6 +348,11 @@ namespace usb_pad
 				break;
 			/* hid specific requests */
 			case SET_REPORT:
+				USB_LOG("Florin : Set HID report : %x ; len=%x; ", request, length);
+				for (int i = 0; i < length; i++) {
+					USB_LOG("%02x ", data[i]);
+				}
+				USB_LOG("\n");
 				// no idea, Rock Band 2 keeps spamming this
 				if (length > 0)
 				{

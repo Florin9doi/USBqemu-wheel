@@ -296,6 +296,7 @@ namespace usb_pad
 				if (caps.UsagePage == HID_USAGE_PAGE_GENERIC &&
 					(caps.Usage == HID_USAGE_GENERIC_JOYSTICK || caps.Usage == HID_USAGE_GENERIC_GAMEPAD))
 				{
+					fprintf(stderr, "Joystick found %04X:%04X\n", attr.VendorID, attr.ProductID);
 					OSDebugOut(TEXT("Joystick found %04X:%04X\n"), attr.VendorID, attr.ProductID);
 					std::wstring strPath(didData->DevicePath);
 					std::transform(strPath.begin(), strPath.end(), strPath.begin(), ::toupper);
