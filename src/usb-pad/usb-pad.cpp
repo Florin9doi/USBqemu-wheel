@@ -41,6 +41,11 @@ namespace usb_pad
 		"",
 		"KONAMI"};
 
+	static const USBDescStrings realplay_desc_strings = {
+		"",
+		"In2Games",
+		"Real Play"};
+
 	std::list<std::string> PadDevice::ListAPIs()
 	{
 		return RegisterPad::instance().Names();
@@ -70,6 +75,26 @@ namespace usb_pad
 	}
 
 	const TCHAR* BuzzDevice::LongAPIName(const std::string& name)
+	{
+		return PadDevice::LongAPIName(name);
+	}
+
+	std::list<std::string> GametrakDevice::ListAPIs()
+	{
+		return PadDevice::ListAPIs();
+	}
+
+	const TCHAR *GametrakDevice::LongAPIName(const std::string &name)
+	{
+		return PadDevice::LongAPIName(name);
+	}
+
+	std::list<std::string> RealPlayDevice::ListAPIs()
+	{
+		return PadDevice::ListAPIs();
+	}
+
+	const TCHAR *RealPlayDevice::LongAPIName(const std::string &name)
 	{
 		return PadDevice::LongAPIName(name);
 	}
@@ -194,6 +219,21 @@ namespace usb_pad
 					if (s->pad->Type() == WT_BUZZ_CONTROLLER) {
 						dev->irq = 1;
 					}
+
+					if (s->pad->Type() == WT_GAMETRAK_CONTROLLER) {
+						for (int i = 0; i < ret; i++) {
+							fprintf(stderr, "%02x ", data[i]);
+						}
+						fprintf(stderr, "\n");
+					}
+
+					if (s->pad->Type() >= WT_REALPLAY_RACING && s->pad->Type() <= WT_REALPLAY_POOL) {
+						for (int i = 0; i < ret; i++) {
+							fprintf(stderr, "%02x ", data[i]);
+						}
+						fprintf(stderr, "\n");
+					}
+
 					if (ret > 0)
 						usb_packet_copy(p, data, MIN(ret, sizeof(data)));
 					else
@@ -263,10 +303,25 @@ namespace usb_pad
 							ret = sizeof(kbm_hid_report_descriptor);
 							memcpy(data, kbm_hid_report_descriptor, ret);
 						}
-						else
+						else if (t == WT_GENERIC)
 						{
 							ret = sizeof(pad_driving_force_hid_separate_report_descriptor);
 							memcpy(data, pad_driving_force_hid_separate_report_descriptor, ret);
+						}
+						else if (t == WT_BUZZ_CONTROLLER)
+						{
+							ret = sizeof(buzz_hid_report_descriptor);
+							memcpy(data, buzz_hid_report_descriptor, ret);
+						}
+						else if (t == WT_GAMETRAK_CONTROLLER)
+						{
+							ret = sizeof(gametrak_ps2_hid_report_descriptor);
+							memcpy(data, gametrak_ps2_hid_report_descriptor, ret);
+						}
+						else if (t >= WT_REALPLAY_RACING && t <= WT_REALPLAY_POOL)
+						{
+							ret = sizeof(realplay_hid_report_descriptor);
+							memcpy(data, realplay_hid_report_descriptor, ret);
 						}
 						p->actual_length = ret;
 						break;
@@ -426,6 +481,41 @@ namespace usb_pad
 				buf[3] = (data.buttons >> 8) & 0xff;
 				buf[4] = 0xf0 | ((data.buttons >> 16) & 0xf);
 				break;
+
+			case WT_GAMETRAK_CONTROLLER:
+				memset(buf, 0, 16);
+				// Left X ? // 14 / 15
+				buf[0] = data.clutch & 0xff;
+				buf[1] = data.clutch >> 8;
+				// Left Y ?
+				buf[2] = data.throttle & 0xff;
+				buf[3] = data.throttle >> 8;
+				// Left Z ?
+				buf[4] = data.brake & 0xff;
+				buf[5] = data.brake >> 8;
+				// Right X
+				buf[6] = data.steering & 0xff;
+				buf[7] = data.steering >> 8;
+				// Right ?
+				// ..... 8 / 9 / 10 / 11
+				// Foot button
+				buf[12] = data.buttons;
+				break;
+
+			case WT_REALPLAY_RACING:
+			case WT_REALPLAY_SPHERE:
+			case WT_REALPLAY_GOLF:
+			case WT_REALPLAY_POOL:
+				memset(buf, 0, 19);
+				buf[0] = data.clutch & 0xff;
+				buf[1] = data.clutch >> 8;
+				buf[2] = data.throttle & 0xff;
+				buf[3] = data.throttle >> 8;
+				buf[4] = data.brake & 0xff;
+				buf[5] = data.brake >> 8;
+				buf[14] = data.buttons;
+				break;
+
 			case WT_SEGA_SEAMIC:
 				buf[0] = data.steering & 0xFF;
 				buf[1] = data.throttle & 0xFF;
@@ -877,5 +967,146 @@ namespace usb_pad
 		return PadDevice::Freeze(mode, dev, data);
 	}
 
+// ---- Gametrak ----
+
+USBDevice *GametrakDevice::CreateDevice(int port)
+{
+	std::string varApi;
+	LoadSetting(nullptr, port, TypeName(), N_DEVICE_API, varApi);
+	PadProxyBase *proxy = RegisterPad::instance().Proxy(varApi);
+	if (!proxy) {
+		SysMessage(TEXT("Gametrak: Invalid input API.\n"));
+		USB_LOG("usb-pad: %s: Invalid input API.\n", TypeName());
+		return NULL;
+	}
+
+	USB_LOG("usb-pad: creating device '%s' on port %d with %s\n", TypeName(), port, varApi.c_str());
+	Pad *pad = proxy->CreateObject(port, TypeName());
+
+	if (!pad)
+		return NULL;
+
+	pad->Type(WT_GAMETRAK_CONTROLLER);
+	PADState *s = new PADState();
+
+	s->desc.full = &s->desc_dev;
+	s->desc.str = buzz_desc_strings;
+
+	if (usb_desc_parse_dev(gametrak_dev_descriptor, sizeof(gametrak_dev_descriptor), s->desc, s->desc_dev) < 0)
+		goto fail;
+	if (usb_desc_parse_config(gametrak_config_descriptor, sizeof(gametrak_config_descriptor), s->desc_dev) < 0)
+		goto fail;
+
+	s->f.dev_subtype = pad->Type();
+	s->pad = pad;
+	s->port = port;
+	s->dev.speed = USB_SPEED_FULL;
+	s->dev.klass.handle_attach = usb_desc_attach;
+	s->dev.klass.handle_reset = pad_handle_reset;
+	s->dev.klass.handle_control = pad_handle_control;
+	s->dev.klass.handle_data = pad_handle_data;
+	s->dev.klass.unrealize = pad_handle_destroy;
+	s->dev.klass.open = pad_open;
+	s->dev.klass.close = pad_close;
+	s->dev.klass.usb_desc = &s->desc;
+	s->dev.klass.product_desc = s->desc.str[1];
+
+	usb_desc_init(&s->dev);
+	usb_ep_init(&s->dev);
+	pad_handle_reset((USBDevice *)s);
+
+	return (USBDevice *)s;
+
+fail:
+	pad_handle_destroy((USBDevice *)s);
+	return nullptr;
+}
+
+int GametrakDevice::Configure(int port, const std::string &api, void *data)
+{
+	auto proxy = RegisterPad::instance().Proxy(api);
+	if (proxy)
+		return proxy->Configure(port, TypeName(), data);
+	return RESULT_CANCELED;
+}
+
+int GametrakDevice::Freeze(int mode, USBDevice *dev, void *data)
+{
+	return PadDevice::Freeze(mode, dev, data);
+}
+
+// ---- RealPlay ----
+
+USBDevice *RealPlayDevice::CreateDevice(int port)
+{
+	std::string varApi;
+	LoadSetting(nullptr, port, TypeName(), N_DEVICE_API, varApi);
+	PadProxyBase *proxy = RegisterPad::instance().Proxy(varApi);
+	if (!proxy) {
+		SysMessage(TEXT("RealPlay: Invalid input API.\n"));
+		USB_LOG("usb-pad: %s: Invalid input API.\n", TypeName());
+		return NULL;
+	}
+
+	USB_LOG("usb-pad: creating device '%s' on port %d with %s\n", TypeName(), port, varApi.c_str());
+	Pad *pad = proxy->CreateObject(port, TypeName());
+
+	if (!pad)
+		return NULL;
+
+	pad->Type((PS2WheelTypes)(WT_REALPLAY_RACING + GetSelectedSubtype(std::make_pair(port, TypeName()))));
+	PADState *s = new PADState();
+
+	s->desc.full = &s->desc_dev;
+	s->desc.str = realplay_desc_strings;
+
+	if (pad->Type() == WT_REALPLAY_RACING && usb_desc_parse_dev(realplay_racing_dev_descriptor, sizeof(realplay_racing_dev_descriptor), s->desc, s->desc_dev) < 0)
+		goto fail;
+	if (pad->Type() == WT_REALPLAY_SPHERE && usb_desc_parse_dev(realplay_sphere_dev_descriptor, sizeof(realplay_sphere_dev_descriptor), s->desc, s->desc_dev) < 0)
+		goto fail;
+	if (pad->Type() == WT_REALPLAY_GOLF && usb_desc_parse_dev(realplay_golf_dev_descriptor, sizeof(realplay_golf_dev_descriptor), s->desc, s->desc_dev) < 0)
+		goto fail;
+	if (pad->Type() == WT_REALPLAY_POOL && usb_desc_parse_dev(realplay_pool_dev_descriptor, sizeof(realplay_pool_dev_descriptor), s->desc, s->desc_dev) < 0)
+		goto fail;
+	if (usb_desc_parse_config(realplay_config_descriptor, sizeof(realplay_config_descriptor), s->desc_dev) < 0)
+		goto fail;
+
+	s->f.dev_subtype = pad->Type();
+	s->pad = pad;
+	s->port = port;
+	s->dev.speed = USB_SPEED_FULL;
+	s->dev.klass.handle_attach = usb_desc_attach;
+	s->dev.klass.handle_reset = pad_handle_reset;
+	s->dev.klass.handle_control = pad_handle_control;
+	s->dev.klass.handle_data = pad_handle_data;
+	s->dev.klass.unrealize = pad_handle_destroy;
+	s->dev.klass.open = pad_open;
+	s->dev.klass.close = pad_close;
+	s->dev.klass.usb_desc = &s->desc;
+	s->dev.klass.product_desc = s->desc.str[1];
+
+	usb_desc_init(&s->dev);
+	usb_ep_init(&s->dev);
+	pad_handle_reset((USBDevice *)s);
+
+	return (USBDevice *)s;
+
+fail:
+	pad_handle_destroy((USBDevice *)s);
+	return nullptr;
+}
+
+int RealPlayDevice::Configure(int port, const std::string &api, void *data)
+{
+	auto proxy = RegisterPad::instance().Proxy(api);
+	if (proxy)
+		return proxy->Configure(port, TypeName(), data);
+	return RESULT_CANCELED;
+}
+
+int RealPlayDevice::Freeze(int mode, USBDevice *dev, void *data)
+{
+	return PadDevice::Freeze(mode, dev, data);
+}
 
 } // namespace usb_pad

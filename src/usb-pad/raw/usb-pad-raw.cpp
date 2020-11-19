@@ -437,7 +437,8 @@ namespace usb_pad
 
 				bool isClassicLogitech = (attr.VendorID == PAD_VID) && (attr.ProductID != 0xC262);
 				bool isKeyboardmania = (attr.VendorID == 0x0507) && (attr.ProductID == 0x0010);
-				if (!isClassicLogitech && !isKeyboardmania)
+				bool isRealPlay = (attr.VendorID == 0x14B7) && (attr.ProductID == 0x09B5);
+				if (!isClassicLogitech && !isKeyboardmania && !isRealPlay)
 				{
 					fwprintf(stderr, TEXT("USBqemu: Vendor is not Logitech or wheel is G920. Not sending force feedback commands for safety reasons.\n"));
 					mDoPassthrough = 0;
