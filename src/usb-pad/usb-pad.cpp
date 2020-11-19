@@ -782,7 +782,7 @@ namespace usb_pad
 		s->dev.klass.open = pad_open;
 		s->dev.klass.close = pad_close;
 		s->dev.klass.usb_desc = &s->desc;
-		s->dev.klass.product_desc = s->desc.str[2];
+		s->dev.klass.product_desc = s->desc.str[1];
 
 		usb_desc_init(&s->dev);
 		usb_ep_init(&s->dev);
