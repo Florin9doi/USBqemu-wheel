@@ -440,6 +440,19 @@ _USBirqHandler(void)
 {
 	//fprintf(stderr," * USB: IRQ Acknowledged.\n");
 	//qemu_ohci->intr_status&=~bits;
+
+	for (int i = 0; i < 2; i++) {
+		if (qemu_ohci && qemu_ohci->rhport[i].port.dev
+				&& qemu_ohci->rhport[i].port.dev->irq == 0) {
+			return 1;
+		}
+	}
+
+	static int irq = 0;
+	irq++;
+	if (irq == 20) irq = 0;
+	return irq == 0 ? 1 : 0;
+
 	return 1;
 }
 

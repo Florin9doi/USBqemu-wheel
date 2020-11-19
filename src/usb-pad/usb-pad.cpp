@@ -190,6 +190,10 @@ namespace usb_pad
 				if (devep == 1 && s->pad)
 				{
 					ret = s->pad->TokenIn(data, p->iov.size);
+
+					if (s->pad->Type() == WT_BUZZ_CONTROLLER) {
+						dev->irq = 1;
+					}
 					if (ret > 0)
 						usb_packet_copy(p, data, MIN(ret, sizeof(data)));
 					else

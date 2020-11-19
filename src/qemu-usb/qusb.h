@@ -406,6 +406,7 @@ struct USBDevice {
     char product_desc[32];
     int auto_attach;
     bool attached;
+    bool irq;
 
     int32_t state;
     uint8_t setup_buf[8];
