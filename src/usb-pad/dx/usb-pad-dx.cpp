@@ -57,9 +57,9 @@ namespace usb_pad
 						mWheelData.buttons |= 1 << i;
 					}
 				}
-				mWheelData.clutch   = std::lround(GetAxisControl(mPort, CID_SQUARE) * 4096.0f);
-				mWheelData.throttle = std::lround(GetAxisControl(mPort, CID_TRIANGLE) * 4096.0f);
-				mWheelData.brake    = std::lround(GetAxisControl(mPort, CID_CROSS) * 4096.0f);
+				mWheelData.clutch   = GetAxisControlUnfiltered(mPort, CID_SQUARE) >> 4;
+				mWheelData.throttle = GetAxisControlUnfiltered(mPort, CID_TRIANGLE) >> 4;
+				mWheelData.brake = GetAxisControlUnfiltered(mPort, CID_CROSS) >> 4;
 				delete_this = !delete_this; // simulate a slight move to avoid a game "protection" : controller disconnected
 				mWheelData.clutch = mWheelData.clutch & 0xfffe | delete_this;
 				pad_copy_data(mType, buf, mWheelData);
